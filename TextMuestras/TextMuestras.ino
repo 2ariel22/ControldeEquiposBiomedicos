@@ -10,7 +10,8 @@ MFRC522 mfrc522(SS_PIN, RST_PIN);
 
 LiquidCrystal_I2C lcd(0x27, 16, 2);
 
-LinkedList<String> list;
+LinkedList<String> Tarjetas;
+LinkedList<bool> TarjetasEstados;
 
 int buscarIndice(LinkedList<String>& lista, String elemento) {
   for (int i = 0; i < lista.size(); i++) {
@@ -28,8 +29,6 @@ void setup() {
   Serial.println("Lectura del UID");
   lcd.init();
   lcd.backlight();
-  lcd.print("Iniciando...");
-  delay(3000);
   lcd.clear();
   lcd.print("wait for tarjeta");
 }
@@ -46,23 +45,19 @@ void loop() {
         uidStr += (mfrc522.uid.uidByte[i] < 0x10 ? "0" : "");
         uidStr += String(mfrc522.uid.uidByte[i], HEX);
       }
-      int indice = buscarIndice(list, uidStr);
+      int indice = buscarIndice(Tarjetas, uidStr);
       if (indice != -1) {
         lcd.clear();
         lcd.setCursor(0, 0);
-        lcd.print(" La makina output");
-        lcd.setCursor(0, 1);
-        lcd.print(" de urgencias.");
+        lcd.print(Tarjetas[0]);
+
         delay(100);
-        list.remove(indice);
+
       } else {
         lcd.clear();
         lcd.setCursor(0, 0);
-        lcd.print(" La makina input");
-        lcd.setCursor(0, 1);
-        lcd.print(" a urgencias.");
-        delay(100);
-        list.add(uidStr); 
+        lcd.print("add new card");
+        Tarjetas.add(uidStr);
       }
 
 
