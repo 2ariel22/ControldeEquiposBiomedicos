@@ -1,53 +1,66 @@
-#include <SPI.h>
-#include <MFRC522.h>
-
-#define RST_PIN_1   9   // Pin 9 para el reset del primer RC522
-#define SS_PIN_1    10   // Pin 10 para el SS (SDA) del primer RC522
-
-#define SS_PIN_2    8   // Pin 7 para el SS (SDA) del segundo RC522
-
-MFRC522 mfrc522_1(SS_PIN_1, RST_PIN_1); // Creamos el objeto para el primer RC522
-MFRC522 mfrc522_2(SS_PIN_2, RST_PIN_1); // Creamos el objeto para el segundo RC522
-
+//Libraries
+#include <SPI.h>//https://www.arduino.cc/en/reference/SPI
+#include <MFRC522.h>//https://github.com/miguelbalboa/rfid
+//Constants
+#define SS_PIN 5
+#define RST_PIN 0
+//Parameters
+const int ipaddress[4] = {103, 97, 67, 25};
+//Variables
+byte nuidPICC[4] = {0, 0, 0, 0};
+MFRC522::MIFARE_Key key;
+MFRC522 rfid = MFRC522(SS_PIN, RST_PIN);
 void setup() {
-    Serial.begin(9600); // Iniciamos la comunicación serial
-    SPI.begin();        // Iniciamos el Bus SPI
-    mfrc522_1.PCD_Init(); // Iniciamos el primer MFRC522
-    mfrc522_2.PCD_Init(); // Iniciamos el segundo MFRC522
-
-    Serial.println("Lectura del UID");
+ 	//Init Serial USB
+ 	Serial.begin(115200);
+ 	Serial.println(F("Initialize System"));
+ 	//init rfid D8,D5,D6,D7
+ 	SPI.begin();
+ 	rfid.PCD_Init();
+ 	Serial.print(F("Reader :"));
+ 	rfid.PCD_DumpVersionToSerial();
 }
-
 void loop() {
-    // Revisamos si hay nuevas tarjetas presentes en el primer lector
-    if (mfrc522_1.PICC_IsNewCardPresent()) {  
-        // Seleccionamos una tarjeta
-        if (mfrc522_1.PICC_ReadCardSerial()) {
-            // Enviamos serialmente su UID
-            Serial.print("Card UID (Reader 1):");
-            for (byte i = 0; i < mfrc522_1.uid.size; i++) {
-                Serial.print(mfrc522_1.uid.uidByte[i] < 0x10 ? " 0" : " ");
-                Serial.print(mfrc522_1.uid.uidByte[i], HEX);   
-            } 
-            Serial.println();
-            // Terminamos la lectura de la tarjeta actual
-            mfrc522_1.PICC_HaltA();         
-        }      
-    }   
-
-    // Revisamos si hay nuevas tarjetas presentes en el segundo lector
-    if (mfrc522_2.PICC_IsNewCardPresent()) {  
-        // Seleccionamos una tarjeta
-        if (mfrc522_2.PICC_ReadCardSerial()) {
-            // Enviamos serialmente su UID
-            Serial.print("Card UID (Reader 2):");
-            for (byte i = 0; i < mfrc522_2.uid.size; i++) {
-                Serial.print(mfrc522_2.uid.uidByte[i] < 0x10 ? " 0" : " ");
-                Serial.print(mfrc522_2.uid.uidByte[i], HEX);   
-            } 
-            Serial.println();
-            // Terminamos la lectura de la tarjeta actual
-            mfrc522_2.PICC_HaltA();         
-        }      
-    }   
+ 	readRFID();
+}
+void readRFID(void ) { /* function readRFID */
+ 	////Read RFID card
+ 	for (byte i = 0; i < 6; i++) {
+ 			key.keyByte[i] = 0xFF;
+ 	}
+ 	// Look for new 1 cards
+ 	if ( ! rfid.PICC_IsNewCardPresent())
+ 			return;
+ 	// Verify if the NUID has been readed
+ 	if ( 	!rfid.PICC_ReadCardSerial())
+ 			return;
+ 	// Store NUID into nuidPICC array
+ 	for (byte i = 0; i < 4; i++) {
+ 			nuidPICC[i] = rfid.uid.uidByte[i];
+ 	}
+ 	Serial.print(F("RFID In dec: "));
+ 	printDec(rfid.uid.uidByte, rfid.uid.size);
+ 	Serial.println();
+ 	// Halt PICC
+ 	rfid.PICC_HaltA();
+ 	// Stop encryption on PCD
+ 	rfid.PCD_StopCrypto1();
+}
+/**
+ 		Helper routine to dump a byte array as hex values to Serial.
+*/
+void printHex(byte *buffer, byte bufferSize) {
+ 	for (byte i = 0; i < bufferSize; i++) {
+ 			Serial.print(buffer[i] < 0x10 ? " 0" : " ");
+ 			Serial.print(buffer[i], HEX);
+ 	}
+}
+/**
+ 		Helper routine to dump a byte array as dec values to Serial.
+*/
+void printDec(byte *buffer, byte bufferSize) {
+ 	for (byte i = 0; i < bufferSize; i++) {
+ 			Serial.print(buffer[i] < 0x10 ? " 0" : " ");
+ 			Serial.print(buffer[i], DEC);
+ 	}
 }
